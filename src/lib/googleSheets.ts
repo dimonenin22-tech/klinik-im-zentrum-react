@@ -1,25 +1,9 @@
 export const DEFAULT_GOOGLE_SHEETS_WEBHOOK_URL =
   "https://script.google.com/macros/s/AKfycbxUZ6A2Daz-4VJuJi1J1jSJblCukJR-lBwSOibdFbsWinO-WZhbjnR8QiWCJncbFt7jdQ/exec";
-
-const PREVIOUS_URLS = [
-  "https://script.google.com/macros/s/AKfycbz9LswxdNR8nhAegROl_LNY4v1jWFep3Hg2F4cFy5H9WTtCtGYgIN1C2OgawVsMaJ6-/exec",
-  "https://script.google.com/macros/s/AKfycbyYrk1u-RaBYQgxy3ecgkg37UrQVmZzXt4uvtrb3LelmzN-Ql632261BcjHl2qjacvV/exec",
-  "https://script.google.com/macros/s/AKfycbwIwXUyB0kI-K7T8uB0zxina7m381SHfhZcdK_QJ49haqPA13R3iZcVArX9DSZ8rIDdYA/exec",
-];
-
 const STORAGE_KEY = "kiz_google_sheets_webhook_url";
 
 export function getGoogleSheetsWebhookUrl(): string {
-  if (typeof window === "undefined") return DEFAULT_GOOGLE_SHEETS_WEBHOOK_URL;
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (
-    !saved ||
-    PREVIOUS_URLS.includes(saved) ||
-    !saved.startsWith("https://script.google.com/macros/s/")
-  ) {
-    return DEFAULT_GOOGLE_SHEETS_WEBHOOK_URL;
-  }
-  return saved;
+  return DEFAULT_GOOGLE_SHEETS_WEBHOOK_URL;
 }
 
 export function setGoogleSheetsWebhookUrl(url: string): void {

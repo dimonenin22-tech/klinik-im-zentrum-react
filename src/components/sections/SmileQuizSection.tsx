@@ -128,10 +128,10 @@ export const SmileQuizSection: FC<SmileQuizProps> = ({ onOpenBooking }) => {
   const [phoneError, setPhoneError] = useState("");
 
   const handlePhoneChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value.replace(/\D/g, "");
-    let digits = raw;
+    let digits = e.target.value.replace(/\D/g, "");
     if (digits.startsWith("380")) digits = digits.slice(3);
-    else if (digits.startsWith("0")) digits = digits.slice(1);
+    else if (digits.startsWith("80")) digits = digits.slice(2);
+    if (digits.startsWith("0")) digits = digits.slice(1);
     digits = digits.slice(0, 9);
 
     let formatted = "+380";

@@ -66,7 +66,7 @@ export const AppointmentModal: FC<AppointmentModalProps> = ({
 
     if (digits.startsWith("380")) digits = digits.slice(3);
     else if (digits.startsWith("80")) digits = digits.slice(2);
-    else if (digits.startsWith("0")) digits = digits.slice(1);
+    if (digits.startsWith("0")) digits = digits.slice(1);
     digits = digits.slice(0, 9); // 9 digits after +380
 
     let formatted = "+380";
