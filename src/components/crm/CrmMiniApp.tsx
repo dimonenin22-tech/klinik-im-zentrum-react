@@ -115,20 +115,78 @@ export const CrmMiniApp: FC = () => {
       const cloudLeads = await fetchLeadsFromGoogleSheets();
       if (cloudLeads && cloudLeads.length > 0) {
         setIsCloudConnected(true);
-        const formatted: CrmLead[] = cloudLeads.map((c, idx) => {
-          const leadId = c.id || `gs-${idx + 1}`;
-          const currentStatus = overrides[leadId] || (c.status as LeadStatus) || "new";
+        const formatted: CrmLead[] = cloudLeads.map((raw: any, idx) => {
+          const leadId = raw.id || raw["ід"] || `gs-${idx + 1}`;
+          const currentStatus =
+            overrides[leadId] ||
+            (raw.status as LeadStatus) ||
+            (raw["статус"] as LeadStatus) ||
+            "new";
+
+          const name =
+            raw.name ||
+            raw["ім'я"] ||
+            raw["імя"] ||
+            raw["ім'я пацієнта"] ||
+            raw["піб"] ||
+            "Пацієнт";
+
+          const phone =
+            raw.phone ||
+            raw["телефон"] ||
+            raw["номер телефону"] ||
+            raw["тел"] ||
+            "";
+
+          const service =
+            raw.service ||
+            raw["послуга"] ||
+            raw["процедура"] ||
+            "Загальна консультація";
+
+          const doctor =
+            raw.doctor ||
+            raw["лікар"] ||
+            raw["фахівець"] ||
+            "Черговий фахівець";
+
+          const preferredDate =
+            raw.preferredDate ||
+            raw["бажана дата"] ||
+            raw["бажана дата / час"] ||
+            raw["час прийому"] ||
+            "";
+
+          const source =
+            raw.source ||
+            raw["джерело"] ||
+            "Сайт";
+
+          const notes =
+            raw.notes ||
+            raw["примітки"] ||
+            raw["примітки / бюджет"] ||
+            raw["коментар"] ||
+            "";
+
+          const createdAt =
+            raw.createdAt ||
+            raw["дата"] ||
+            raw["дата і час"] ||
+            raw["час"] ||
+            "";
+
           return {
             id: leadId,
-            name: c.name || "Пацієнт",
-            phone: c.phone ? String(c.phone).replace(/^'/, "") : "",
-            service: c.service || "Загальна консультація",
-            doctor: c.doctor || "Черговий фахівець",
-            preferredDate: c.preferredDate || "",
-            source: c.source || "Сайт",
-            notes: c.notes || "",
+            name,
+            phone: phone ? String(phone).replace(/^'/, "") : "",
+            service,
+            doctor,
+            preferredDate,
+            source,
+            notes,
             status: currentStatus,
-            createdAt: c.createdAt ? String(c.createdAt).slice(0, 24) : "",
+            createdAt: createdAt ? String(createdAt).slice(0, 24) : "",
           };
         });
         setLeads(formatted);
