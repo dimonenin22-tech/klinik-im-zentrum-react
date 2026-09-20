@@ -190,11 +190,6 @@ export const CrmMiniApp: FC = () => {
           };
         });
         setLeads(formatted);
-      } else {
-        const localLeads = getCrmLeads();
-        if (localLeads && localLeads.length > 0) {
-          setLeads(localLeads.map((l) => ({ ...l, status: overrides[l.id] || l.status })));
-        }
       }
     } catch (e) {
       console.warn("Помилка синхронізації з Google Sheets:", e);
