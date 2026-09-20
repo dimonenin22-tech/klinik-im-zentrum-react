@@ -19,12 +19,10 @@ import {
   Settings,
 } from "lucide-react";
 import {
-  getCrmLeads,
   saveCrmLead,
   updateCrmLeadStatus,
   deleteCrmLead,
   exportCrmLeadsToCsv,
-  getStatusOverrides,
   type CrmLead,
   type LeadStatus,
 } from "../../lib/crmStorage";
@@ -100,28 +98,23 @@ export const CrmMiniApp: FC = () => {
     return getDoctorAvailableSlots(bookingDoctorId, currentBookingDateStr);
   }, [bookingDoctorId, currentBookingDateStr]);
 
+  const parseStatus = (val: any): LeadStatus => {
+    const s = String(val || "").toLowerCase().trim();
+    if (s === "confirmed" || s.includes("підтвердж") || s.includes("запис")) return "confirmed";
+    if (s === "followup" || s.includes("передзв") || s.includes("уточн")) return "followup";
+    if (s === "archived" || s.includes("архів") || s.includes("скас")) return "archived";
+    return "new";
+  };
+
   const loadLeads = async () => {
-    const overrides = getStatusOverrides();
-
-    // 1. Initial quick load from local cache with overrides applied
-    const local = getCrmLeads();
-    if (local && local.length > 0) {
-      setLeads(local.map((l) => ({ ...l, status: overrides[l.id] || l.status })));
-    }
-
-    // 2. Fetch live data from Google Sheets
     setIsLoadingCloud(true);
     try {
       const cloudLeads = await fetchLeadsFromGoogleSheets();
-      if (cloudLeads && cloudLeads.length > 0) {
+      if (Array.isArray(cloudLeads)) {
         setIsCloudConnected(true);
         const formatted: CrmLead[] = cloudLeads.map((raw: any, idx) => {
           const leadId = raw.id || raw["ід"] || `gs-${idx + 1}`;
-          const currentStatus =
-            overrides[leadId] ||
-            (raw.status as LeadStatus) ||
-            (raw["статус"] as LeadStatus) ||
-            "new";
+          const currentStatus = parseStatus(raw.status || raw["статус"]);
 
           const name =
             raw.name ||
@@ -194,10 +187,6 @@ export const CrmMiniApp: FC = () => {
     } catch (e) {
       console.warn("Помилка синхронізації з Google Sheets:", e);
       setIsCloudConnected(false);
-      const localLeads = getCrmLeads();
-      if (localLeads && localLeads.length > 0) {
-        setLeads(localLeads.map((l) => ({ ...l, status: overrides[l.id] || l.status })));
-      }
     } finally {
       setIsLoadingCloud(false);
     }
@@ -206,6 +195,20 @@ export const CrmMiniApp: FC = () => {
   useEffect(() => {
     loadLeads();
     setSheetsUrlInput(getGoogleSheetsWebhookUrl());
+
+    // Авто-оновлення при поверненні на вкладку CRM або перемиканні вікна
+    const handleSyncOnFocus = () => {
+      if (document.visibilityState === "visible") {
+        loadLeads();
+      }
+    };
+    document.addEventListener("visibilitychange", handleSyncOnFocus);
+    window.addEventListener("focus", handleSyncOnFocus);
+
+    // Фонове оновлення кожні 20 секунд для відстеження змін у таблиці
+    const syncInterval = setInterval(() => {
+      loadLeads();
+    }, 20000);
 
     // Telegram Web App API initialization
     if (typeof window !== "undefined" && (window as any).Telegram?.WebApp) {
@@ -220,6 +223,12 @@ export const CrmMiniApp: FC = () => {
         console.warn("Telegram WebApp initData parse error:", e);
       }
     }
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleSyncOnFocus);
+      window.removeEventListener("focus", handleSyncOnFocus);
+      clearInterval(syncInterval);
+    };
   }, []);
 
   const refreshLeads = () => {
