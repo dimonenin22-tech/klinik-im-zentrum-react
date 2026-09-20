@@ -112,3 +112,23 @@ export async function updateLeadInGoogleSheets(
     return false;
   }
 }
+
+/** Видаляє рядок у Google Таблиці за id. */
+export async function deleteLeadFromGoogleSheets(id: string): Promise<boolean> {
+  const webhookUrl = getGoogleSheetsWebhookUrl();
+  if (!webhookUrl) return false;
+
+  try {
+    await fetch(webhookUrl, {
+      method: "POST",
+      mode: "no-cors",
+      keepalive: true,
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ action: "delete", id }),
+    });
+    return true;
+  } catch (err) {
+    console.warn("Помилка видалення з Google Таблиці:", err);
+    return false;
+  }
+}

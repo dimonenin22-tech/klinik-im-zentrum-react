@@ -35,6 +35,7 @@ import {
   sendLeadToGoogleSheets,
   fetchLeadsFromGoogleSheets,
   updateLeadInGoogleSheets,
+  deleteLeadFromGoogleSheets,
 } from "../../lib/googleSheets";
 import {
   bookDoctorSlot,
@@ -281,6 +282,9 @@ export const CrmMiniApp: FC = () => {
       cancelDoctorSlot(id);
       setLeads((prev) => prev.filter((l) => l.id !== id));
       deleteCrmLead(id);
+      deleteLeadFromGoogleSheets(id).catch((e) =>
+        console.warn("Google Sheets delete error:", e)
+      );
     }
   };
 
