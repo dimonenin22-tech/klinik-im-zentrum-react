@@ -5,7 +5,6 @@ import { DOCTORS, SERVICE_CATEGORIES } from "../../data/clinicData";
 import { ShimmerButton } from "../ui/ShimmerButton";
 import { sendTelegramLead } from "../../lib/telegram";
 import { saveCrmLead } from "../../lib/crmStorage";
-import { sendLeadToGoogleSheets } from "../../lib/googleSheets";
 import { getDoctorLiveBadge } from "../../lib/scheduleStorage";
 
 interface AppointmentModalProps {
@@ -113,14 +112,11 @@ export const AppointmentModal: FC<AppointmentModalProps> = ({
         source: "Модальне вікно запису",
       };
 
-      // 1. Зберегти в локальний кеш
-      saveCrmLead(leadPayload);
+      // 1. Зберегти в CRM та відправити в Google Таблицю
+      const savedLead = saveCrmLead(leadPayload);
 
-      // 2. Гарантовано надіслати в Google Таблицю та Telegram-бот
-      await Promise.allSettled([
-        sendLeadToGoogleSheets(leadPayload),
-        sendTelegramLead(leadPayload),
-      ]);
+      // 2. Надіслати в Telegram-бот
+      await sendTelegramLead(savedLead);
     } finally {
       setIsSubmitting(false);
       setIsSuccess(true);

@@ -13,7 +13,6 @@ import { ShimmerButton } from "../ui/ShimmerButton";
 import { DOCTORS } from "../../data/clinicData";
 import { sendTelegramLead } from "../../lib/telegram";
 import { saveCrmLead } from "../../lib/crmStorage";
-import { sendLeadToGoogleSheets } from "../../lib/googleSheets";
 
 interface SmileQuizProps {
   onOpenBooking: (service?: string, doctor?: string) => void;
@@ -162,14 +161,11 @@ export const SmileQuizSection: FC<SmileQuizProps> = ({ onOpenBooking }) => {
       source: `Смайл-квіз (Бюджет: ${selectedGoal.priceRange})`,
     };
 
-    // Save to CRM archive
-    saveCrmLead(leadPayload);
+    // Save to CRM archive & auto-dispatch to Google Sheets
+    const savedLead = saveCrmLead(leadPayload);
 
-    // Guaranteed parallel dispatch to Google Sheets & Telegram
-    Promise.allSettled([
-      sendLeadToGoogleSheets(leadPayload),
-      sendTelegramLead(leadPayload),
-    ]);
+    // Dispatch to Telegram
+    sendTelegramLead(savedLead);
 
     setIsSent(true);
   };

@@ -1,11 +1,18 @@
 export const DEFAULT_GOOGLE_SHEETS_WEBHOOK_URL =
+  "https://script.google.com/macros/s/AKfycbyYrk1u-RaBYQgxy3ecgkg37UrQVmZzXt4uvtrb3LelmzN-Ql632261BcjHl2qjacvV/exec";
+
+const OLD_DEFAULT_URL =
   "https://script.google.com/macros/s/AKfycbz9LswxdNR8nhAegROl_LNY4v1jWFep3Hg2F4cFy5H9WTtCtGYgIN1C2OgawVsMaJ6-/exec";
 
 const STORAGE_KEY = "kiz_google_sheets_webhook_url";
 
 export function getGoogleSheetsWebhookUrl(): string {
   if (typeof window === "undefined") return DEFAULT_GOOGLE_SHEETS_WEBHOOK_URL;
-  return localStorage.getItem(STORAGE_KEY) || DEFAULT_GOOGLE_SHEETS_WEBHOOK_URL;
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (!saved || saved === OLD_DEFAULT_URL) {
+    return DEFAULT_GOOGLE_SHEETS_WEBHOOK_URL;
+  }
+  return saved;
 }
 
 export function setGoogleSheetsWebhookUrl(url: string): void {
@@ -34,6 +41,10 @@ export async function sendLeadToGoogleSheets(
 
   try {
     const payload = {
+      action: "append",
+      id:
+        lead.id ||
+        `lead-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       createdAt:
         lead.createdAt ||
         new Date().toLocaleString("uk-UA", { timeZone: "Europe/Kyiv" }),
@@ -44,6 +55,7 @@ export async function sendLeadToGoogleSheets(
       preferredDate: lead.preferredDate || "Найближчий вільний",
       source: lead.source || "Сайт",
       notes: lead.notes || "",
+      status: lead.status || "new",
     };
 
     // Use mode: 'no-cors' and text/plain to avoid CORS preflight rejection from Google Apps Script
@@ -93,7 +105,8 @@ export async function fetchLeadsFromGoogleSheets(): Promise<GoogleSheetsLeadPayl
  *  Використовує той самий no-cors підхід — відповідь опакована, але запис пройде. */
 export async function updateLeadInGoogleSheets(
   id: string,
-  fields: Partial<Omit<GoogleSheetsLeadPayload, "id">>
+  fields: Partial<Omit<GoogleSheetsLeadPayload, "id">>,
+  phone?: string
 ): Promise<boolean> {
   const webhookUrl = getGoogleSheetsWebhookUrl();
   if (!webhookUrl) return false;
@@ -104,7 +117,7 @@ export async function updateLeadInGoogleSheets(
       mode: "no-cors",
       keepalive: true,
       headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({ action: "update", id, ...fields }),
+      body: JSON.stringify({ action: "update", id, phone, ...fields }),
     });
     return true;
   } catch (err) {
@@ -113,8 +126,11 @@ export async function updateLeadInGoogleSheets(
   }
 }
 
-/** Видаляє рядок у Google Таблиці за id. */
-export async function deleteLeadFromGoogleSheets(id: string): Promise<boolean> {
+/** Видаляє рядок у Google Таблиці за id або phone. */
+export async function deleteLeadFromGoogleSheets(
+  id: string,
+  phone?: string
+): Promise<boolean> {
   const webhookUrl = getGoogleSheetsWebhookUrl();
   if (!webhookUrl) return false;
 
@@ -124,7 +140,7 @@ export async function deleteLeadFromGoogleSheets(id: string): Promise<boolean> {
       mode: "no-cors",
       keepalive: true,
       headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({ action: "delete", id }),
+      body: JSON.stringify({ action: "delete", id, phone }),
     });
     return true;
   } catch (err) {

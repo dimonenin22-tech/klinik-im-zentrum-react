@@ -237,12 +237,16 @@ export const CrmMiniApp: FC = () => {
     updateCrmLeadStatus(bookingLead.id, "confirmed");
 
     // 4. Оновлюємо існуючий рядок у Google Таблиці (UPDATE, не INSERT)
-    updateLeadInGoogleSheets(bookingLead.id, {
-      doctor: `${docObj.name} (${docObj.role})`,
-      preferredDate: appointmentDateFormatted,
-      status: "confirmed",
-      notes: `Підтверджено запис на: ${appointmentDateFormatted}. ${bookingLead.notes || ""}`.trim(),
-    }).catch((e) => console.warn("Google Sheets sync error:", e));
+    updateLeadInGoogleSheets(
+      bookingLead.id,
+      {
+        doctor: `${docObj.name} (${docObj.role})`,
+        preferredDate: appointmentDateFormatted,
+        status: "confirmed",
+        notes: `Підтверджено запис на: ${appointmentDateFormatted}. ${bookingLead.notes || ""}`.trim(),
+      },
+      bookingLead.phone
+    ).catch((e) => console.warn("Google Sheets sync error:", e));
 
     // 5. Закриваємо модалку
     setBookingLead(null);
@@ -271,18 +275,21 @@ export const CrmMiniApp: FC = () => {
     // 2. Зберігаємо оверрайд статусу для сесії
     updateCrmLeadStatus(id, newStatus);
     // 3. Синхронізуємо статус у Google Таблиці (UPDATE)
-    updateLeadInGoogleSheets(id, { status: newStatus }).catch((e) =>
-      console.warn("Google Sheets status sync error:", e)
-    );
+    updateLeadInGoogleSheets(
+      id,
+      { status: newStatus },
+      targetLead?.phone
+    ).catch((e) => console.warn("Google Sheets status sync error:", e));
   };
 
   const handleDelete = (id: string) => {
+    const leadToDelete = leads.find((l) => l.id === id);
     if (window.confirm("Ви дійсно бажаєте видалити цей запис?")) {
       triggerHaptic();
       cancelDoctorSlot(id);
       setLeads((prev) => prev.filter((l) => l.id !== id));
       deleteCrmLead(id);
-      deleteLeadFromGoogleSheets(id).catch((e) =>
+      deleteLeadFromGoogleSheets(id, leadToDelete?.phone).catch((e) =>
         console.warn("Google Sheets delete error:", e)
       );
     }
