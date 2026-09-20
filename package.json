@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "node -e \"const fs=require('fs'); fs.copyFileSync('index.template.html','index.html')\" && tsc -b && vite build && node -e \"const fs=require('fs'); fs.copyFileSync('dist/index.html','index.html'); fs.cpSync('dist/assets','assets',{recursive:true,force:true})\"",
     "lint": "oxlint",
     "preview": "vite preview"
   },
