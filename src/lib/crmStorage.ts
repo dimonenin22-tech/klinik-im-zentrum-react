@@ -1,5 +1,3 @@
-import { sendLeadToGoogleSheets } from "./googleSheets";
-
 export type LeadStatus = "new" | "confirmed" | "followup" | "archived";
 
 export interface CrmLead {
@@ -157,11 +155,6 @@ export function saveCrmLead(
   } catch (e) {
     console.error("Помилка збереження заявки в CRM:", e);
   }
-
-  // Автоматична відправка в Google Таблицю (якщо підключено)
-  sendLeadToGoogleSheets(newLead).catch((err) => {
-    console.warn("Помилка фонової синхронізації з Google Sheets:", err);
-  });
 
   return newLead;
 }

@@ -12,7 +12,11 @@ const STORAGE_KEY = "kiz_google_sheets_webhook_url";
 export function getGoogleSheetsWebhookUrl(): string {
   if (typeof window === "undefined") return DEFAULT_GOOGLE_SHEETS_WEBHOOK_URL;
   const saved = localStorage.getItem(STORAGE_KEY);
-  if (!saved || PREVIOUS_URLS.includes(saved)) {
+  if (
+    !saved ||
+    PREVIOUS_URLS.includes(saved) ||
+    !saved.startsWith("https://script.google.com/macros/s/")
+  ) {
     return DEFAULT_GOOGLE_SHEETS_WEBHOOK_URL;
   }
   return saved;
@@ -20,7 +24,12 @@ export function getGoogleSheetsWebhookUrl(): string {
 
 export function setGoogleSheetsWebhookUrl(url: string): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, url.trim());
+  const clean = url.trim();
+  if (!clean || clean === DEFAULT_GOOGLE_SHEETS_WEBHOOK_URL) {
+    localStorage.removeItem(STORAGE_KEY);
+  } else {
+    localStorage.setItem(STORAGE_KEY, clean);
+  }
 }
 
 export interface GoogleSheetsLeadPayload {
@@ -52,7 +61,7 @@ export async function sendLeadToGoogleSheets(
         lead.createdAt ||
         new Date().toLocaleString("uk-UA", { timeZone: "Europe/Kyiv" }),
       name: lead.name,
-      phone: lead.phone && lead.phone.startsWith("+") ? `'${lead.phone}` : lead.phone,
+      phone: lead.phone || "",
       service: lead.service || "Загальна консультація",
       doctor: lead.doctor || "Черговий фахівець",
       preferredDate: lead.preferredDate || "Найближчий вільний",

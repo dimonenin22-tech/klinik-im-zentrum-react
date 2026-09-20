@@ -12,6 +12,7 @@ import {
 import { ShimmerButton } from "../ui/ShimmerButton";
 import { DOCTORS } from "../../data/clinicData";
 import { sendTelegramLead } from "../../lib/telegram";
+import { sendLeadToGoogleSheets } from "../../lib/googleSheets";
 import { saveCrmLead } from "../../lib/crmStorage";
 
 interface SmileQuizProps {
@@ -123,6 +124,7 @@ export const SmileQuizSection: FC<SmileQuizProps> = ({ onOpenBooking }) => {
   const [patientName, setPatientName] = useState("");
   const [patientPhone, setPatientPhone] = useState("+380 ");
   const [isSent, setIsSent] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [phoneError, setPhoneError] = useState("");
 
   const handlePhoneChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -141,7 +143,7 @@ export const SmileQuizSection: FC<SmileQuizProps> = ({ onOpenBooking }) => {
     setPhoneError("");
   };
 
-  const handleQuickSubmit = (e: FormEvent) => {
+  const handleQuickSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const digits = patientPhone.replace(/\D/g, "");
     if (digits.length < 12) {
@@ -149,25 +151,33 @@ export const SmileQuizSection: FC<SmileQuizProps> = ({ onOpenBooking }) => {
       return;
     }
 
-    const timelineText = TIMELINES.find((t) => t.id === selectedTimeline)?.title || selectedTimeline;
-    const paymentText = PAYMENT_PREFERENCES.find((p) => p.id === selectedPayment)?.title || selectedPayment;
+    setIsSubmitting(true);
+    try {
+      const timelineText = TIMELINES.find((t) => t.id === selectedTimeline)?.title || selectedTimeline;
+      const paymentText = PAYMENT_PREFERENCES.find((p) => p.id === selectedPayment)?.title || selectedPayment;
 
-    const leadPayload = {
-      name: patientName.trim() || "Пацієнт (з квізу)",
-      phone: patientPhone.trim(),
-      service: selectedGoal.suggestedService || selectedGoal.title,
-      doctor: doctorMatch.name,
-      notes: `Терміни: ${timelineText}. Оплата: ${paymentText}. Закріплено бонус: 3D КТ за 300 грн.`,
-      source: `Смайл-квіз (Бюджет: ${selectedGoal.priceRange})`,
-    };
+      const leadPayload = {
+        name: patientName.trim() || "Пацієнт (з квізу)",
+        phone: patientPhone.trim(),
+        service: selectedGoal.suggestedService || selectedGoal.title,
+        doctor: doctorMatch.name,
+        notes: `Терміни: ${timelineText}. Оплата: ${paymentText}. Закріплено бонус: 3D КТ за 300 грн.`,
+        source: `Смайл-квіз (Бюджет: ${selectedGoal.priceRange})`,
+      };
 
-    // Save to CRM archive & auto-dispatch to Google Sheets
-    const savedLead = saveCrmLead(leadPayload);
+      // 1. Зберегти в CRM
+      const savedLead = saveCrmLead(leadPayload);
 
-    // Dispatch to Telegram
-    sendTelegramLead(savedLead);
+      // 2. Гарантовано надіслати в Google Таблицю та в Telegram-бот
+      await Promise.allSettled([
+        sendLeadToGoogleSheets(savedLead),
+        sendTelegramLead(savedLead),
+      ]);
 
-    setIsSent(true);
+      setIsSent(true);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleReset = () => {
@@ -538,8 +548,12 @@ export const SmileQuizSection: FC<SmileQuizProps> = ({ onOpenBooking }) => {
                         )}
                       </div>
 
-                      <ShimmerButton type="submit" className="w-full py-2.5 text-xs font-bold shadow-md">
-                        Підтвердити консультацію (300 грн)
+                      <ShimmerButton
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="w-full py-2.5 text-xs font-bold shadow-md disabled:opacity-60"
+                      >
+                        {isSubmitting ? "Надсилаємо заявку..." : "Підтвердити консультацію (300 грн)"}
                       </ShimmerButton>
 
                       <div className="pt-2 text-center">

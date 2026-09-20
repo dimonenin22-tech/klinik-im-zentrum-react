@@ -365,7 +365,7 @@ export const CrmMiniApp: FC = () => {
     }
 
     triggerHaptic();
-    saveCrmLead({
+    const created = saveCrmLead({
       name: newName.trim(),
       phone: newPhone.trim(),
       service: newService || "Консультація лікаря",
@@ -373,6 +373,8 @@ export const CrmMiniApp: FC = () => {
       notes: newNotes.trim(),
       source: "Створено вручну в CRM",
     });
+
+    sendLeadToGoogleSheets(created).finally(() => refreshLeads());
 
     setIsAddModalOpen(false);
     setNewName("");
