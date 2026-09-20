@@ -1,5 +1,5 @@
 import type { FC } from "react";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { CASES } from "../../data/clinicData";
 import { ShimmerButton } from "../ui/ShimmerButton";
 
@@ -15,6 +15,18 @@ export const BeforeAfterSection: FC<BeforeAfterSectionProps> = ({ onOpenBooking 
 
   const activeCase = CASES.find((c) => c.id === activeCaseId) || CASES[0];
 
+  useEffect(() => {
+    const handleGlobalPointerUp = () => {
+      isDragging.current = false;
+    };
+    window.addEventListener("pointerup", handleGlobalPointerUp);
+    window.addEventListener("pointercancel", handleGlobalPointerUp);
+    return () => {
+      window.removeEventListener("pointerup", handleGlobalPointerUp);
+      window.removeEventListener("pointercancel", handleGlobalPointerUp);
+    };
+  }, []);
+
   const handlePointerMove = useCallback((clientX: number) => {
     if (!sliderRef.current) return;
     const rect = sliderRef.current.getBoundingClientRect();
@@ -23,23 +35,32 @@ export const BeforeAfterSection: FC<BeforeAfterSectionProps> = ({ onOpenBooking 
     setSliderPos(percent);
   }, []);
 
-  const handleMouseDown = () => {
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     isDragging.current = true;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // fallback
+    }
+    handlePointerMove(e.clientX);
   };
 
-  const handleMouseUp = () => {
-    isDragging.current = false;
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     if (isDragging.current) {
-      handlePointerMove(e.clientX);
+      isDragging.current = false;
+      try {
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+      } catch {
+        // fallback
+      }
     }
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length > 0) {
-      handlePointerMove(e.touches[0].clientX);
+  const handlePointerMoveEvent = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isDragging.current) {
+      handlePointerMove(e.clientX);
     }
   };
 
@@ -94,13 +115,11 @@ export const BeforeAfterSection: FC<BeforeAfterSectionProps> = ({ onOpenBooking 
           {/* Strict Anti-Stretch Slider Container with clip-path */}
           <div
             ref={sliderRef}
-            onClick={(e) => handlePointerMove(e.clientX)}
-            onMouseDown={handleMouseDown}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            onMouseMove={handleMouseMove}
-            onTouchMove={handleTouchMove}
-            className="relative w-full aspect-16/9 bg-slate-950 select-none overflow-hidden touch-pan-y cursor-ew-resize"
+            onPointerDown={handlePointerDown}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            onPointerMove={handlePointerMoveEvent}
+            className="relative w-full aspect-16/9 bg-slate-950 select-none overflow-hidden touch-none cursor-ew-resize"
           >
             {/* Layer 2: AFTER IMAGE (Background) */}
             <img
